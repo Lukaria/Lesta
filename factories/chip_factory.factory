@@ -1,0 +1,2 @@
+prototype: "/prefabs/chip.go"
+load_dynamically: false

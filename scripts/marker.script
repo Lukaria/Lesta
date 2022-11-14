@@ -1,0 +1,23 @@
+local TRIGGER = hash("trigger_response")
+
+go.property("index", 10)
+function init(self)
+	self.life = 0.05
+end
+
+function update(self, dt)
+	print(dt)
+	self.life = self.life - dt
+	if self.life < 0 then go.delete()
+	end
+end
+
+function on_message(self, message_id, message, sender)
+	if message_id == TRIGGER then
+		if self.index == 0 then
+			msg.post("GameManager", "checking", 
+			{index = go.get(msg.url(nil, message.other_id, "chip"), "index")})
+			go.delete()
+		end
+	end
+end

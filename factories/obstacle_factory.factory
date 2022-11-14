@@ -1,0 +1,2 @@
+prototype: "/prefabs/obstacle.go"
+load_dynamically: false

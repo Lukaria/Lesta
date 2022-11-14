@@ -1,0 +1,109 @@
+local X = {}
+local Y = {}
+local INDICES = {1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3}
+local HASH ={}
+local CO = nil
+
+local m = require 'modules.grid'
+function InitCoords()
+	X, Y = m.InitGrid()
+end
+
+function InitField()
+	for i = 1, 5 do
+		for j = 1, 5 do
+			factory.create("#field_factory", vmath.vector3(X[i], Y[j], 0.1))
+		end
+	end
+end
+
+function InitObstacles()
+	for i = 2, 5, 2 do
+		for j = 1, 5, 2 do 
+			factory.create("#obstacle_factory", vmath.vector3(X[i], Y[j], 0.5))
+		end
+	end
+end
+
+function ShuffleArray()
+	local arr = INDICES
+	math.randomseed(socket.gettime() * 10000)
+	for i = 1, #arr do
+		local tmp = arr[i]
+		local r = math.random(i, #arr)
+		arr[i] = arr[r]
+		arr[r] = tmp
+	end
+	INDICES = arr
+end
+
+function InitChips()
+	local counter = 1
+	for i = 1, 5, 2 do
+		for j = 1, 5 do
+			HASH[counter] = factory.create("#chip_factory", vmath.vector3(X[i], Y[j], 0.5), 
+			nil, {index = INDICES[counter]})
+			counter = counter + 1
+		end
+	end
+end
+
+function init(self)
+	InitCoords()
+	InitField()
+	InitObstacles()
+	ShuffleArray()
+	InitChips()
+
+	self.counter = 1
+	self.ind = 1
+end
+
+function Reset()
+	for i = 1, 15 do
+		go.delete(HASH[i])
+	end
+	ShuffleArray()
+	InitChips()
+end
+
+function InitCO()
+	CO = nil
+	CO = coroutine.create(function ()
+		for i =1, 5, 2 do
+			for j = 1, 5 do
+				factory.create("#marker_factory", vmath.vector3(X[i], Y[j], 0.5), nil, {index = 0}, 
+				vmath.vector3(40, 40, 0))
+				coroutine.yield()
+			end
+		end
+	end)
+end
+
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("check") then
+		self.pos = 1
+		self.counter = 1
+		self.ind = 1
+		InitCO()
+		coroutine.resume(CO)
+	elseif message_id == hash("checking") then	
+		if self.ind == message.index then
+			if self.counter == 5 then 
+				if self.ind == 3 then
+					msg.post("gui#main_gui", "victory")
+				end
+				self.ind = self.ind + 1
+				self.counter = 1
+			else
+				self.counter = self.counter + 1 
+			end
+			coroutine.resume(CO)
+		end
+
+	elseif message_id == hash("reset") then
+		Reset()
+		msg.post("controller#controller", "reset")
+	end
+end
